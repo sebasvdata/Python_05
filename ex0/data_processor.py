@@ -175,10 +175,11 @@ if __name__ == "__main__":
     print("\nTesting Log Processor...")
     log = LogProcessor()
     print(f"Trying to validate input 'Hello': {log.validate('hello')}")
-    print(f"Processing data: {[
+    log_data = [
         {'log_level': 'NOTICE', 'log_message': 'Connection to server'},
         {'log_level': 'ERROR', 'log_message': 'Unauthorized access!!'}
-    ]}")
+    ]
+    print(f"Processing data: {log_data}")
     log.ingest([
         {'log_level': 'NOTICE', 'log_message': 'Connection to server'},
         {'log_level': 'ERROR', 'log_message': 'Unauthorized access!!'}

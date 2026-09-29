@@ -2,8 +2,39 @@ import typing
 import abc
 
 
-class DataProcessor(abc.ABC):
+class ExportPlugin(typing.Protocol):
+    def process_output(self, data: list[tuple[int, str]]) -> None:
+        ...
 
+
+class JSONExportPlugin:
+    def json_escape(self, value: str) -> str:
+        escaped = value.replace("\\", "\\\\")
+        escaped = escaped.replace('"', '\\"')
+        escaped = escaped.replace("\n", "\\n")
+        escaped = escaped.replace("\r", "\\r")
+        escaped = escaped.replace("\t", "\\t")
+        return escaped
+
+    def process_output(self, data: list[tuple[int, str]]) -> None:
+        print("JSON Output:")
+        items = [f'"item_{rank}": "{self.json_escape(val)}"'
+                 for rank, val in data]
+        print("{" + ", ".join(items) + "}")
+
+
+class CSVExportPlugin:
+    def csv_escape(self, value: str) -> str:
+        if any(char in value for char in ',"\n\r'):
+            return '"' + value.replace('"', '""') + '"'
+        return value
+
+    def process_output(self, data: list[tuple[int, str]]) -> None:
+        print("CSV Output:")
+        print(",".join(self.csv_escape(val) for _, val in data))
+
+
+class DataProcessor(abc.ABC):
     def __init__(self) -> None:
         self._data: list[str] = []
         self._count = 0
@@ -141,7 +172,7 @@ class LogProcessor(DataProcessor):
                          one["log_level"] + ': ' + one["log_message"]
                          )
         else:
-            raise ValueError("data is not dict,list of dict")
+            raise ValueError("data is not dict, list of dict")
 
 
 class DataStream:
@@ -175,12 +206,78 @@ class DataStream:
                       f"items processed, remaining {len(proc._data)} "
                       "on processor")
 
-    def output_pipeline(self, nb: int, plugin: ExportPlugin) -> None: 
+    def output_pipeline(self, nb: int, plugin: ExportPlugin) -> None:
+        for proc in self._processors:
+            data_to_export: list[tuple[int, str]] = []
+            while len(data_to_export) < nb and len(proc._data) > 0:
+                data_to_export.append(proc.output())
+
+            if data_to_export:
+                plugin.process_output(data_to_export)
 
 
-class ExportPlugin(Protocol):
-    def process_output(self, data: list[tuple[int, str]]) -> None:
-
-    
 if __name__ == "__main__":
     print("=== Code Nexus - Data Pipeline ===\n")
+    print("Initialize Data Stream...")
+
+    stream = DataStream()
+    stream.print_processors_stats()
+
+    print("\nRegistering Processors")
+    stream.register_processor(NumericProcessor())
+    stream.register_processor(TextProcessor())
+    stream.register_processor(LogProcessor())
+
+    batch1 = [
+        'Hello world',
+        [3.14, -1, 2.71],
+        [
+            {
+                'log_level': 'WARNING',
+                'log_message': 'Telnet access! Use ssh instead'
+            },
+            {
+                'log_level': 'INFO',
+                'log_message': 'User wil is connected'
+            }
+        ],
+        42,
+        ['Hi', 'five']
+    ]
+
+    print(f"\nSend first batch of data on stream: {batch1}")
+    stream.process_stream(batch1)
+    stream.print_processors_stats()
+
+    print("\nSend 3 processed data from each processor to a CSV plugin:")
+    csv_plugin = CSVExportPlugin()
+    stream.output_pipeline(3, csv_plugin)
+
+    stream.print_processors_stats()
+
+    batch2 = [
+        21,
+        ['I love AI', 'LLMs are wonderful', 'Stay healthy'],
+        [
+            {
+                'log_level': 'ERROR',
+                'log_message': '500 server crash'
+            },
+            {
+                'log_level': 'NOTICE',
+                'log_message': 'Certificate expires in 10 days'
+            }
+        ],
+        [32, 42, 64, 84, 128, 168],
+        'World hello'
+    ]
+
+    print(f"\nSend another batch of data: {batch2}")
+    stream.process_stream(batch2)
+    stream.print_processors_stats()
+
+    print("\nSend 5 processed data from each processor to a JSON plugin:")
+    json_plugin = JSONExportPlugin()
+    stream.output_pipeline(5, json_plugin)
+
+    stream.print_processors_stats()
