@@ -144,47 +144,43 @@ class LogProcessor(DataProcessor):
             raise ValueError("data is not dict,list of dict")
 
 
+class DataStream:
+    def __init__(self) -> None:
+        self._processors: list[DataProcessor] = []
+
+    def register_processor(self, proc: DataProcessor) -> None:
+        self._processors.append(proc)
+
+    def process_stream(self, stream: list[typing.Any]) -> None:
+        for data in stream:
+            for proc in self._processors:
+                if proc.validate(data):
+                    proc.ingest(data)
+                    break
+            else:
+                print("DataStream error - "
+                      f"Can't process element in stream: {data}")
+
+    def print_processors_stats(self) -> None:
+        print("\n== DataStream statistics ==")
+        if not self._processors:
+            print("No processor found, no data")
+        else:
+            for proc in self._processors:
+                proc_name = proc.__class__.__name__.replace(
+                    "Processor", " Processor")
+                proc_total = proc._count + len(proc._data)
+                print(f"{proc_name}: "
+                      f"total {proc_total} "
+                      f"items processed, remaining {len(proc._data)} "
+                      "on processor")
+
+    def output_pipeline(self, nb: int, plugin: ExportPlugin) -> None: 
+
+
+class ExportPlugin(Protocol):
+    def process_output(self, data: list[tuple[int, str]]) -> None:
+
+    
 if __name__ == "__main__":
-    print("=== Code Nexus - Data Processor ===")
-
-    print("\nTesting Numeric Processor...")
-    number = NumericProcessor()
-    print(f"Trying to validate input '42': {number.validate(42)}")
-    print(f"Trying to validate input 'Hello': {number.validate('hello')}")
-    print("Test invalid ingestion of string 'foo' without prior validation:")
-    try:
-        number.ingest('foo')
-    except ValueError as error:
-        print(f"Got exception: {error}")
-    print("Processing data: [1, 2, 3, 4, 5]")
-    number.ingest([1, 2, 3, 4, 5])
-    print("Extracting 3 values...")
-    for out in range(3):
-        result = number.output()
-        print(f"Numeric value {result[0]}: {result[1]}")
-
-    print("\nTesting Text Processor...")
-    text = TextProcessor()
-    print(f"Trying to validate input '42': {text.validate(42)}")
-    print("Processing data: ['Hello', 'Nexus', 'World']")
-    text.ingest(['Hello', 'Nexus', 'World'])
-    print("Extracting 1 value...")
-    result = text.output()
-    print(f"Text value {result[0]}: {result[1]}")
-
-    print("\nTesting Log Processor...")
-    log = LogProcessor()
-    print(f"Trying to validate input 'Hello': {log.validate('hello')}")
-    print(f"Processing data: {[
-        {'log_level': 'NOTICE', 'log_message': 'Connection to server'},
-        {'log_level': 'ERROR', 'log_message': 'Unauthorized access!!'}
-    ]}")
-    log.ingest([
-        {'log_level': 'NOTICE', 'log_message': 'Connection to server'},
-        {'log_level': 'ERROR', 'log_message': 'Unauthorized access!!'}
-    ])
-    print('Extracting 2 values...')
-    result = log.output()
-    print(f"Log entry {result[0]}: {result[1]}")
-    result = log.output()
-    print(f"Log entry {result[0]}: {result[1]}")
+    print("=== Code Nexus - Data Pipeline ===\n")
