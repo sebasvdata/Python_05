@@ -2,6 +2,10 @@ import typing
 import abc
 
 
+class NoDataError(Exception):
+    pass
+
+
 class DataProcessor(abc.ABC):
 
     def __init__(self) -> None:
@@ -18,7 +22,7 @@ class DataProcessor(abc.ABC):
 
     def output(self) -> tuple[int, str]:
         if len(self._data) == 0:
-            raise Exception("No data available to output")
+            raise NoDataError("No data available to output")
         info = self._data.pop(0)
         out = (self._count, info)
         self._count += 1
@@ -92,7 +96,7 @@ class TextProcessor(DataProcessor):
 
 
 class LogProcessor(DataProcessor):
-    def _valdite_one(self, data: typing.Any) -> bool:
+    def _validate_one(self, data: typing.Any) -> bool:
         if not isinstance(data, dict):
             return False
 
@@ -113,7 +117,7 @@ class LogProcessor(DataProcessor):
         return True
 
     def validate(self, data: typing.Any) -> bool:
-        if self._valdite_one(data):
+        if self._validate_one(data):
             return True
 
         if isinstance(data, list):
@@ -121,7 +125,7 @@ class LogProcessor(DataProcessor):
                 return False
 
             for one in data:
-                if not self._valdite_one(one):
+                if not self._validate_one(one):
                     return False
             return True
 

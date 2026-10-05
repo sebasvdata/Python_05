@@ -2,6 +2,10 @@ import typing
 import abc
 
 
+class NoDataError(Exception):
+    pass
+
+
 class ExportPlugin(typing.Protocol):
     def process_output(self, data: list[tuple[int, str]]) -> None:
         ...
@@ -9,12 +13,24 @@ class ExportPlugin(typing.Protocol):
 
 class JSONExportPlugin:
     def json_escape(self, value: str) -> str:
-        escaped = value.replace("\\", "\\\\")
-        escaped = escaped.replace('"', '\\"')
-        escaped = escaped.replace("\n", "\\n")
-        escaped = escaped.replace("\r", "\\r")
-        escaped = escaped.replace("\t", "\\t")
-        return escaped
+        escapes = {
+            '"': '\\"',
+            '\\': '\\\\',
+            '\n': '\\n',
+            '\r': '\\r',
+            '\t': '\\t',
+            '\b': '\\b',
+            '\f': '\\f',
+        }
+        chars: list[str] = []
+        for char in value:
+            if char in escapes:
+                chars.append(escapes[char])
+            elif ord(char) < 0x20:
+                chars.append(f'\\u{ord(char):04x}')
+            else:
+                chars.append(char)
+        return ''.join(chars)
 
     def process_output(self, data: list[tuple[int, str]]) -> None:
         print("JSON Output:")
@@ -49,7 +65,7 @@ class DataProcessor(abc.ABC):
 
     def output(self) -> tuple[int, str]:
         if len(self._data) == 0:
-            raise Exception("No data available to output")
+            raise NoDataError("No data available to output")
         info = self._data.pop(0)
         out = (self._count, info)
         self._count += 1
@@ -123,7 +139,7 @@ class TextProcessor(DataProcessor):
 
 
 class LogProcessor(DataProcessor):
-    def _valdite_one(self, data: typing.Any) -> bool:
+    def _validate_one(self, data: typing.Any) -> bool:
         if not isinstance(data, dict):
             return False
 
@@ -144,7 +160,7 @@ class LogProcessor(DataProcessor):
         return True
 
     def validate(self, data: typing.Any) -> bool:
-        if self._valdite_one(data):
+        if self._validate_one(data):
             return True
 
         if isinstance(data, list):
@@ -152,7 +168,7 @@ class LogProcessor(DataProcessor):
                 return False
 
             for one in data:
-                if not self._valdite_one(one):
+                if not self._validate_one(one):
                     return False
             return True
 
