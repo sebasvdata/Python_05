@@ -153,13 +153,16 @@ if __name__ == "__main__":
 
     print("\nTesting Numeric Processor...")
     number = NumericProcessor()
+
     print(f"Trying to validate input '42': {number.validate(42)}")
     print(f"Trying to validate input 'Hello': {number.validate('hello')}")
+
     print("Test invalid ingestion of string 'foo' without prior validation:")
     try:
         number.ingest('foo')
     except ValueError as error:
         print(f"Got exception: {error}")
+
     print("Processing data: [1, 2, 3, 4, 5]")
     number.ingest([1, 2, 3, 4, 5])
     print("Extracting 3 values...")
@@ -169,15 +172,18 @@ if __name__ == "__main__":
 
     print("\nTesting Text Processor...")
     text = TextProcessor()
+
     print(f"Trying to validate input '42': {text.validate(42)}")
     print("Processing data: ['Hello', 'Nexus', 'World']")
     text.ingest(['Hello', 'Nexus', 'World'])
+
     print("Extracting 1 value...")
     result = text.output()
     print(f"Text value {result[0]}: {result[1]}")
 
     print("\nTesting Log Processor...")
     log = LogProcessor()
+
     print(f"Trying to validate input 'Hello': {log.validate('hello')}")
     log_data = [
         {'log_level': 'NOTICE', 'log_message': 'Connection to server'},
@@ -185,6 +191,7 @@ if __name__ == "__main__":
     ]
     print(f"Processing data: {log_data}")
     log.ingest(log_data)
+
     print('Extracting 2 values...')
     result = log.output()
     print(f"Log entry {result[0]}: {result[1]}")

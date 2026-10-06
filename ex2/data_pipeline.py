@@ -26,8 +26,6 @@ class JSONExportPlugin:
         for char in value:
             if char in escapes:
                 chars.append(escapes[char])
-            elif ord(char) < 0x20:
-                chars.append(f'\\u{ord(char):04x}')
             else:
                 chars.append(char)
         return ''.join(chars)
