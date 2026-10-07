@@ -3,7 +3,7 @@ import abc
 
 
 class NoDataError(Exception):
-    pass
+    ...
 
 
 class ExportPlugin(typing.Protocol):
@@ -12,40 +12,17 @@ class ExportPlugin(typing.Protocol):
 
 
 class JSONExportPlugin:
-    def json_escape(self, value: str) -> str:
-        escapes = {
-            '"': '\\"',
-            '\\': '\\\\',
-            '\n': '\\n',
-            '\r': '\\r',
-            '\t': '\\t',
-            '\b': '\\b',
-            '\f': '\\f',
-        }
-        chars: list[str] = []
-        for char in value:
-            if char in escapes:
-                chars.append(escapes[char])
-            else:
-                chars.append(char)
-        return ''.join(chars)
-
     def process_output(self, data: list[tuple[int, str]]) -> None:
         print("JSON Output:")
-        items = [f'"item_{rank}": "{self.json_escape(val)}"'
-                 for rank, val in data]
+        items = [f'"item_{rank}": "{val}"' for rank, val in data]
         print("{" + ", ".join(items) + "}")
 
 
 class CSVExportPlugin:
-    def csv_escape(self, value: str) -> str:
-        if any(char in value for char in ',"\n\r'):
-            return '"' + value.replace('"', '""') + '"'
-        return value
-
     def process_output(self, data: list[tuple[int, str]]) -> None:
         print("CSV Output:")
-        print(",".join(self.csv_escape(val) for _, val in data))
+        items = [val for _, val in data]
+        print(",".join(items))
 
 
 class DataProcessor(abc.ABC):

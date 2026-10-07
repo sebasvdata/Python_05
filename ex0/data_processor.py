@@ -3,7 +3,7 @@ import abc
 
 
 class NoDataError(Exception):
-    pass
+    ...
 
 
 class DataProcessor(abc.ABC):
